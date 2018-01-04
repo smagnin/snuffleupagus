@@ -6,6 +6,8 @@
 ZEND_DECLARE_MODULE_GLOBALS(snuffleupagus)
 
 static void (*orig_execute_ex)(zend_execute_data *execute_data);
+static void (*orig_zend_execute_internal)(zend_execute_data *execute_data,
+                                          zval *return_value);
 static int (*orig_zend_stream_open)(const char *filename,
                                     zend_file_handle *handle);
 
@@ -76,6 +78,29 @@ static void sp_execute_ex(zend_execute_data *execute_data) {
     efree(filename);
   }
 
+  if (SNUFFLEUPAGUS_G(in_eval) == true) {
+    /* This part deals with `eval` whitelist. */
+    if (NULL != SNUFFLEUPAGUS_G(config).config_eval->whitelist->data) {
+      char *current_function = get_complete_function_path(execute_data);
+      sp_list_node *it = SNUFFLEUPAGUS_G(config).config_eval->whitelist;
+
+      if (current_function) {
+        while (it) {
+          if (0 == strcmp(current_function, (char *)(it->data))) {
+            goto eval_whitelisted;
+          }
+          it = it->next;
+        }
+        sp_log_msg(
+            "Eval_whitelist", SP_LOG_DROP,
+            "The function %s isn't in the eval whitelist, dropping its call.",
+            current_function);
+        sp_terminate();
+      }
+    }
+  }
+eval_whitelisted:
+
   if (NULL != execute_data->func->op_array.filename) {
     if (true == SNUFFLEUPAGUS_G(config).config_readonly_exec->enable) {
       terminate_if_writable(ZSTR_VAL(execute_data->func->op_array.filename));
@@ -89,6 +114,43 @@ static void sp_execute_ex(zend_execute_data *execute_data) {
   }
 
   SNUFFLEUPAGUS_G(in_eval)--;
+}
+
+static void sp_zend_execute_internal(INTERNAL_FUNCTION_PARAMETERS) {
+  zend_string *function_name = execute_data->func->common.function_name;
+  if (function_name == NULL) {
+    function_name = execute_data->func->op_array.function_name;
+  }
+
+  if (!function_name) {
+    goto whitelisted;
+  }
+
+  if (SNUFFLEUPAGUS_G(in_eval) == true) {
+    /* This part deals with `eval` whitelist. */
+    if (NULL != SNUFFLEUPAGUS_G(config).config_eval->whitelist->data) {
+      sp_list_node *it = SNUFFLEUPAGUS_G(config).config_eval->whitelist;
+
+      while (it) {
+        if (0 == strcmp(function_name->val, (char *)(it->data))) {
+          goto whitelisted;
+        }
+        it = it->next;
+      }
+      sp_log_msg(
+          "Eval_whitelist", SP_LOG_DROP,
+          "The function '%s' isn't in the eval safe list, dropping its call.",
+          function_name->val);
+      sp_terminate();
+    }
+  }
+
+whitelisted:
+  EX(func)->internal_function.handler(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+
+  if (NULL != orig_zend_execute_internal) {
+    orig_zend_execute_internal(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+  }
 }
 
 static int sp_stream_open(const char *filename, zend_file_handle *handle) {
@@ -139,6 +201,10 @@ int hook_execute(void) {
   /* zend_execute_ex is used for "classic" function calls */
   orig_execute_ex = zend_execute_ex;
   zend_execute_ex = sp_execute_ex;
+
+  /* zend_execute_internal is used FIXME */
+  orig_zend_execute_internal = zend_execute_internal;
+  zend_execute_internal = sp_zend_execute_internal;
 
   /* zend_stream_open_function is used FIXME */
   orig_zend_stream_open = zend_stream_open_function;
