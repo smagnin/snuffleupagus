@@ -78,7 +78,7 @@ static void sp_execute_ex(zend_execute_data *execute_data) {
     efree(filename);
   }
 
-  if (SNUFFLEUPAGUS_G(in_eval) == true) {
+  if (SNUFFLEUPAGUS_G(in_eval) > 0) {
     /* This part deals with `eval` whitelist. */
     if (NULL != SNUFFLEUPAGUS_G(config).config_eval->whitelist->data) {
       char *current_function = get_complete_function_path(execute_data);
@@ -113,7 +113,9 @@ eval_whitelisted:
     sp_terminate();
   }
 
-  SNUFFLEUPAGUS_G(in_eval)--;
+  if (execute_data->func->op_array.type == ZEND_EVAL_CODE) {
+    SNUFFLEUPAGUS_G(in_eval)--;
+  }
 }
 
 static void sp_zend_execute_internal(INTERNAL_FUNCTION_PARAMETERS) {
@@ -126,7 +128,7 @@ static void sp_zend_execute_internal(INTERNAL_FUNCTION_PARAMETERS) {
     goto whitelisted;
   }
 
-  if (SNUFFLEUPAGUS_G(in_eval) == true) {
+  if (SNUFFLEUPAGUS_G(in_eval) > 0) {
     /* This part deals with `eval` whitelist. */
     if (NULL != SNUFFLEUPAGUS_G(config).config_eval->whitelist->data) {
       sp_list_node *it = SNUFFLEUPAGUS_G(config).config_eval->whitelist;
