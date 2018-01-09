@@ -13,7 +13,7 @@ void sp_list_free(sp_list_node *node) {
 
 sp_list_node *sp_list_new() {
   sp_list_node *new = pecalloc(sizeof(*new), 1, 1);
-  new->next = new->data = new->head = NULL;
+  new->next = new->data = NULL;
   return new;
 }
 
@@ -47,16 +47,14 @@ sp_list_node *sp_list_sort(sp_list_node *pList,
 }
 
 void sp_list_insert(sp_list_node *list, void *data) {
-  if (list->head == NULL) {
+  if (list->data == NULL && list->next == NULL) {
     list->data = data;
     list->next = NULL;
-    list->head = list;
   } else {
     sp_list_node *new = pecalloc(sizeof(*new), 1, 1);
 
     new->data = data;
     new->next = NULL;
-    new->head = list;
 
     while (list->next) {
       list = list->next;
@@ -66,17 +64,14 @@ void sp_list_insert(sp_list_node *list, void *data) {
 }
 
 void sp_list_prepend(sp_list_node *list, void *data) {
-  if (list->head == NULL) {
+  if (list->data == NULL && list->next == NULL) {
     list->data = data;
     list->next = NULL;
-    list->head = list;
   } else {
     sp_list_node *new = pecalloc(sizeof(*new), 1, 1);
 
     new->next = list->next;
     list->next = new;
-
-    new->head = list;
 
     new->data = list->data;
     list->data = data;

@@ -3,7 +3,6 @@
 
 typedef struct sp_node_s {
   struct sp_node_s *next;
-  struct sp_node_s *head;
   void *data;
 
 } sp_list_node;
