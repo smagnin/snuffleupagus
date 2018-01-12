@@ -116,7 +116,7 @@ static int parse_eval_filter_conf(char *line, sp_list_node *list) {
   }
 
   while ((token = strtok_r(rest, ",", &rest))) {
-    sp_list_insert(list, token);
+    list = sp_list_insert(list, token);
   }
   return SUCCESS;
 }
@@ -204,7 +204,8 @@ int parse_cookie(char *line) {
       return -1;
     }
   }
-  sp_list_insert(SNUFFLEUPAGUS_G(config).config_cookie->cookies, cookie);
+  SNUFFLEUPAGUS_G(config).config_cookie->cookies = sp_list_insert(
+      SNUFFLEUPAGUS_G(config).config_cookie->cookies, cookie);
   return SUCCESS;
 }
 
@@ -371,12 +372,12 @@ int parse_disabled_functions(char *line) {
 
   switch (get_construct_type(df)) {
     case ZEND_INCLUDE_OR_EVAL:
-      sp_list_insert(
+      SNUFFLEUPAGUS_G(config).config_disabled_constructs->construct_include = sp_list_insert(
           SNUFFLEUPAGUS_G(config).config_disabled_constructs->construct_include,
           df);
       return ret;
     case ZEND_EVAL_CODE:
-      sp_list_insert(
+      SNUFFLEUPAGUS_G(config).config_disabled_constructs->construct_eval = sp_list_insert(
           SNUFFLEUPAGUS_G(config).config_disabled_constructs->construct_eval,
           df);
       return ret;
@@ -390,11 +391,11 @@ int parse_disabled_functions(char *line) {
   }
 
   if (df->ret || df->r_ret || df->ret_type) {
-    sp_list_insert(SNUFFLEUPAGUS_G(config)
-                       .config_disabled_functions_ret->disabled_functions,
-                   df);
+    SNUFFLEUPAGUS_G(config).config_disabled_functions_ret->disabled_functions = sp_list_insert(
+        SNUFFLEUPAGUS_G(config).config_disabled_functions_ret->disabled_functions,
+        df);
   } else {
-    sp_list_insert(
+    SNUFFLEUPAGUS_G(config).config_disabled_functions->disabled_functions = sp_list_insert(
         SNUFFLEUPAGUS_G(config).config_disabled_functions->disabled_functions,
         df);
   }

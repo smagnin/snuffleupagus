@@ -10,7 +10,7 @@ static int parse_str_tokens(const char *str, const sp_conf_token token,
       token_elm->pos = cur_str - str;
       token_elm->text_repr = token.text_repr;
       token_elm->type = token.type;
-      sp_list_insert(tokens_list, token_elm);
+      tokens_list = sp_list_insert(tokens_list, token_elm);
       cur_str += strlen(token.text_repr);
     } else {
       cur_str++;
@@ -240,7 +240,7 @@ sp_tree *parse_var(const char *line) {
   if (!line) {
     return NULL;
   }
-  tokens_list = sp_list_new();
+  tokens_list = NULL;
   for (unsigned int i = 0; i < sizeof(delimiter_list) / sizeof(sp_conf_token);
        i++) {
     parse_str_tokens(line, delimiter_list[i], tokens_list);
