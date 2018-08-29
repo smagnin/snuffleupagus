@@ -1,0 +1,24 @@
+image: debian
+
+stages:
+  - test
+
+tests:debian:
+    stage: test
+    services:
+    - php:7.0
+  stage: coverage
+  script:
+  - export TARGET="gcc php7.0"
+  - export CC="gcc"
+  - cd src; phpize; ./configure --enable-snuffleupagus; cd -
+  - make debug -j2
+  - 'if [[ ! "${TARGET}" = *"nightly"* ]]; then
+      pecl install vld-beta ;
+    fi'
+  - cd src
+  - phpize
+  - ./configure --enable-snuffleupagus --enable-coverage
+  - make -j 2
+  - TEST_PHP_ARGS="-q" REPORT_EXIT_STATUS=1 make test
+
